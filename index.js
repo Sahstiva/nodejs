@@ -23,7 +23,13 @@ const cons = readline.createInterface({
 });
 
 if(options.path) {
-    readfile(path.join(cwd, options.path));
+    if(isFile(path.join(cwd, options.path)))
+        readfile(path.join(cwd, options.path));
+    else {
+        cwd = cwd + '/' + options.path;
+        getfile(fs.readdirSync(options.path));
+    }
+
 }
 else {
     console.log('Файл для чтения не задан.');
