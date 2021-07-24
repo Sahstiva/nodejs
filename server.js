@@ -10,6 +10,8 @@ const http = require('http').createServer(app);
 
 const io = require('socket.io')(http);
 
+const { Worker } = require('worker_threads');
+
 app.use(express.static(__dirname+'/public'));
 
 const session = require('express-session');
@@ -33,23 +35,32 @@ io.on('connection', socket => {
     socket.disconnect();
     return;
   }
+  io.emit('UserConnected', { username: socket.request.session.username, users: io.of("/").sockets.size });
 
-  console.log('Chat user connected:', socket.request.session.username);
 
   socket.on('disconnect', () => {
-    console.log('Chat user disconnected:', socket.request.session.username);
-  })
+    io.emit('UserDisconnected', { username: socket.request.session.username, users: io.of("/").sockets.size });
+
+  });
 
   socket.on('chatMessage', (data) => {
     console.log('Chat message from', socket.request.session.username+':', data);
     data.message = socket.request.session.username + ': ' + data.message;
     io.emit('chatMessage', data);
-    // console.log(io.sockets.sockets);
-  })
-})
+  });
+
+  socket.on('workerLogStart', data => {
+    console.log('Starting log worker:', data.sourceFile);
+    const worker = new Worker('./logworker.js', {
+      workerData: data,
+    });
+    worker.on('message', progress => {
+      socket.emit('progress', progress);
+    });
+  });
+});
 
 const getPrimes = require('./primes.js');
-const { Worker } = require('worker_threads');
 
 io.of('/primes').on('connection', (socket) => {
   console.log('Primes user connected');
