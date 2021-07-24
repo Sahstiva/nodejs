@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: 0.5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      .header { height: 100px; width: 100% }
+      .header h1 { text-align: center; }
+      .main { width: 100vw; display: flex; }
+      .left { width: 70% }
+      .right { width: 30% }
+      .right ul { list-style-type: none; margin: 0; padding: 0; }
+      .worker { width: 20%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+
+    </style>
+  </head>
+  <body>
+    <header class="header">
+        <h1>Node JS + Socket.io Chat</h1>
+    </header>
+    <main class="main">
+        <section class="left">
+            <ul id="messages"></ul>
+        </section>
+        <section class="right">
+            <h2>Chat INFO</h2>
+            <p class="total">Total users: </p>
+            <p class="progress">Worker progress: idle</p>
+            <button class="worker" onclick="startworker()">Start worker</button>
+            <ul class="info"></ul>
+        </section>
+    </main>
+    <footer class="footer">
+            <form action="">
+              <input id="m" autocomplete="off" /><button onClick="submitMessage(event)">Send</button>
+            </form>
+    </footer>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        function submitMessage(e) {
+            const messageEl = document.getElementById('m');
+
+            e.preventDefault();
+            console.log('chatMessage', messageEl.value);
+            socket.emit('chatMessage', { message: messageEl.value });
+            messageEl.value='';
+            messageEl.focus();
+            return false;
+        }
+
+        function startworker() {
+            console.log('Starting worker');
+            socket.emit('workerLogStart', { sourceFile: 'data/access.log' });
+        }
+
+        socket.on('UserConnected', function(data) {
+            const infoEl = document.querySelector('.info');
+            const counter = document.querySelector('.total');
+            const newInfoEl = document.createElement('li');
+            newInfoEl.textContent = 'Присоединился: ' + data.username;
+            counter.textContent = `Total users: ${data.users}`;
+            infoEl.appendChild(newInfoEl);
+        });
+        socket.on('UserDisconnected', function(data) {
+            const infoEl = document.querySelector('.info');
+            const counter = document.querySelector('.total');
+            const newInfoEl = document.createElement('li');
+            newInfoEl.textContent = 'Отсоединился: ' + data.username;
+            counter.textContent = `Total users: ${data.users}`;
+            infoEl.appendChild(newInfoEl);
+        });
+
+        socket.on('progress', function(progress) {
+            const progressEl = document.querySelector('.progress');
+            progressEl.textContent = `Worker progress: ${progress}%`;
+        })
+
+        socket.on('chatMessage', function (msg) {
+            const messagesEl = document.getElementById('messages');
+
+            const messageEl = document.createElement('li');
+            messageEl.textContent = msg.message;
+
+            messagesEl.appendChild(messageEl);
+        });
+
+    </script>
+  </body>
+</html>
