@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO primes</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 55%; margin-right: 0.5%; }
+      form button { width: 20%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0 }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" />
+      <button onClick="submitMessage(event)">Send</button>
+      <button onClick="submitMessageWorker(event)">Send to worker</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io('/primes');
+        var reqDate;
+
+        function submitMessage(e) {
+            const messageEl = document.getElementById('m');
+
+            e.preventDefault();
+            console.log('getPrimes:', messageEl.value);
+            reqDate = Date.now();
+            socket.emit('getPrimes', { MAXNUM: messageEl.value });
+            messageEl.value='';
+            messageEl.focus();
+            return false;
+        }
+
+        function submitMessageWorker(e) {
+            const messageEl = document.getElementById('m');
+
+            e.preventDefault();
+            console.log('workerPrimes:', messageEl.value);
+            reqDate = Date.now();
+            socket.emit('workerPrimes', { MAXNUM: messageEl.value });
+            messageEl.value='';
+            messageEl.focus();
+            return false;
+        }
+
+        socket.on('working', function(msg) {
+            const messagesEl = document.getElementById('messages');
+
+            const messageEl = document.createElement('li');
+            messageEl.textContent = `worker is working on ${msg.task} for ${Date.now() - reqDate} milliseconds`;
+            console.log(messageEl.textContent);
+
+            messagesEl.appendChild(messageEl);        
+        })
+
+        socket.on('result', function (msg) {
+            const messagesEl = document.getElementById('messages');
+
+            const messageEl = document.createElement('li');
+            messageEl.textContent = `${msg.primes.length} primes returned in ${Date.now() - reqDate} milliseconds`;
+            console.log(messageEl.textContent);
+
+            messagesEl.appendChild(messageEl);
+        });
+
+    </script>
+  </body>
+</html>
